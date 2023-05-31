@@ -79,6 +79,8 @@ class MiniPlayer(QtWidgets.QMainWindow):
         self.vboxlayout = QtWidgets.QVBoxLayout()
         self.vboxlayout.addWidget(self.videoframe)
         self.widget.setLayout(self.vboxlayout)
+        
+        self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint) #플레이어윈도우 맨위로
 
     def open_file(self):
         """Open a media file in a MediaPlayer
