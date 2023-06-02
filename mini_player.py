@@ -115,6 +115,8 @@ class MiniPlayer(QtWidgets.QMainWindow):
 
         # Start playing the video as soon as it loads
         self.mediaplayer.play()
+        
+        self.mediaplayer.set_loop(1)
 
     def update_ui(self):
         self.update_statusbar()
