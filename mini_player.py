@@ -115,9 +115,7 @@ class MiniPlayer(QtWidgets.QMainWindow):
 
         # Start playing the video as soon as it loads
         self.mediaplayer.play()
-        
-        self.mediaplayer.set_loop(1)
-
+       
     def update_ui(self):
         self.update_statusbar()
 
@@ -146,8 +144,8 @@ class MiniPlayer(QtWidgets.QMainWindow):
         if val != self.mediaplayer.get_time():
             self.mediaplayer.set_time(val)
             
-      # Check if the video has ended and restart it
-    if self.mediaplayer.get_state() == vlc.State.Ended:
+      	# Check if the video has ended and restart it
+    	if self.mediaplayer.get_state() == vlc.State.Ended:
 	    self.mediaplayer.stop()
 	    self.mediaplayer.play()
 
