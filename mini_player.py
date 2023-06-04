@@ -118,37 +118,11 @@ class MiniPlayer(QtWidgets.QMainWindow):
        
     def update_ui(self):
         self.update_statusbar()
-
-        try:
-            val = self.data_queue.get(block=False)
-        except queue.Empty:
-            return
-
-        if val == '<':
-            self.mediaplayer.set_rate(self.mediaplayer.get_rate() * 0.5)
-            return
-        if val == '>':
-            self.mediaplayer.set_rate(self.mediaplayer.get_rate() * 2)
-            return
-        if val == 'P':
-            self.mediaplayer.play()
-            return
-        if val == 'p':
-            self.mediaplayer.pause()
-            return
-        if val == 'S':
-            self.mediaplayer.stop()
-            return
-
-        val = int(val)
-        if val != self.mediaplayer.get_time():
-            self.mediaplayer.set_time(val)
-            
       	# Check if the video has ended and restart it
     	if self.mediaplayer.get_state() == vlc.State.Ended:
-	    self.mediaplayer.stop()
-	    self.mediaplayer.play()
-
+		self.mediaplayer.stop()
+		self.mediaplayer.play()
+		
     def update_statusbar(self):
         mtime = QtCore.QTime(0, 0, 0, 0)
         time = mtime.addMSecs(self.mediaplayer.get_time())
