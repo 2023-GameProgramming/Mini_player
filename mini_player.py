@@ -35,7 +35,7 @@ import vlc
 class MiniPlayer(QtWidgets.QMainWindow):
     """Stripped-down PyQt5-based media player class to sync with "master" video.
     """
-    def __init__(self, data_queue, master=None):
+    def __init__(self, master=None):
         QtWidgets.QMainWindow.__init__(self, master)
         self.setWindowTitle("Mini Player")
         self.statusbar = self.statusBar()
@@ -55,8 +55,6 @@ class MiniPlayer(QtWidgets.QMainWindow):
         self.timer = QtCore.QTimer(self)
         self.timer.setInterval(10)
         self.timer.timeout.connect(self.update_ui)
-
-        self.data_queue = data_queue
         self.timer.start()
 
     def init_ui(self):
@@ -112,10 +110,8 @@ class MiniPlayer(QtWidgets.QMainWindow):
             self.mediaplayer.set_hwnd(int(self.videoframe.winId()))
         elif platform.system() == "Darwin":  # for MacOS
             self.mediaplayer.set_nsobject(int(self.videoframe.winId()))
-
         # Start playing the video as soon as it loads
         self.mediaplayer.play()
-       
     def update_ui(self):
         self.update_statusbar()
       	# Check if the video has ended and restart it
@@ -127,16 +123,11 @@ class MiniPlayer(QtWidgets.QMainWindow):
         mtime = QtCore.QTime(0, 0, 0, 0)
         time = mtime.addMSecs(self.mediaplayer.get_time())
         self.statusbar.showMessage(time.toString())
-
-
 def main():
     """Entry point for our simple vlc player
     """
     app = QtWidgets.QApplication(sys.argv)
-
-    data_queue = queue.Queue()
-
-    player = MiniPlayer(data_queue)
+    player = MiniPlayer()
     player.show()
     player.resize(480, 480)
     
