@@ -46,13 +46,17 @@ class MiniPlayer(QtWidgets.QMainWindow):
         # Create a basic vlc instance
         self.instance = vlc.Instance()
 
-        self.media = None
+        self.video_media = None
+        self.audio_media = None
 
-        # Create an empty vlc media player
-        self.mediaplayer = self.instance.media_player_new()
+        # Create an empty vlc media player for video
+        self.video_mediaplayer = self.instance.media_player_new()
+
+        # Create an empty vlc media player for audio
+        self.audio_mediaplayer = self.instance.media_player_new()
 
         self.init_ui()
-        self.open_file()
+        self.open_files()
 
         self.timer = QtCore.QTimer(self)
         self.timer.setInterval(10)
@@ -61,15 +65,14 @@ class MiniPlayer(QtWidgets.QMainWindow):
         self.data_queue = data_queue
         self.timer.start()
 
-        # Key event filter
-        self.key_event_filter = KeyPressEventFilter(self)
-        self.installEventFilter(self.key_event_filter)
-
     def init_ui(self):
         """Set up the user interface
         """
         self.widget = QtWidgets.QWidget(self)
         self.setCentralWidget(self.widget)
+
+        # Create a stacked layout
+        self.stacked_layout = QtWidgets.QStackedLayout()
 
         # In this widget, the video will be drawn
         if platform.system() == "Darwin":  # for MacOS
@@ -82,43 +85,52 @@ class MiniPlayer(QtWidgets.QMainWindow):
         self.videoframe.setPalette(self.palette)
         self.videoframe.setAutoFillBackground(True)
 
-        self.vboxlayout = QtWidgets.QVBoxLayout()
-        self.vboxlayout.addWidget(self.videoframe)
-        self.widget.setLayout(self.vboxlayout)
+        self.stacked_layout.addWidget(self.videoframe)
+        self.widget.setLayout(self.stacked_layout)
 
-    def open_file(self):
-        """Open a media file in a MediaPlayer
+    def open_files(self):
+        """Open media files in media players
         """
-        dialog_txt = "Choose Media File"
-        filename = QtWidgets.QFileDialog.getOpenFileName(self, dialog_txt, os.path.expanduser('~'))
-        if not filename[0]:
+        dialog_txt = "Choose Video File"
+        filename_video = QtWidgets.QFileDialog.getOpenFileName(self, dialog_txt, os.path.expanduser('~'))
+        if not filename_video[0]:
+            return
+
+        dialog_txt = "Choose Audio File"
+        filename_audio = QtWidgets.QFileDialog.getOpenFileName(self, dialog_txt, os.path.expanduser('~'))
+        if not filename_audio[0]:
             return
 
         # getOpenFileName returns a tuple, so use only the actual file name
-        self.media = self.instance.media_new(filename[0])
+        self.video_media = self.instance.media_new(filename_video[0])
+        self.audio_media = self.instance.media_new(filename_audio[0])
 
-        # Put the media in the media player
-        self.mediaplayer.set_media(self.media)
+        # Put the media in the media players
+        self.video_mediaplayer.set_media(self.video_media)
+        self.audio_mediaplayer.set_media(self.audio_media)
 
-        # Parse the metadata of the file
-        self.media.parse()
+        # Parse the metadata of the files
+        self.video_media.parse()
+        self.audio_media.parse()
 
         # Set the title of the track as the window title
-        self.setWindowTitle("{}".format(self.media.get_meta(0)))
+        self.setWindowTitle("{}".format(self.video_media.get_meta(0)))
 
-        # The media player has to be 'connected' to the QFrame (otherwise the
-        # video would be displayed in it's own window). This is platform
-        # specific, so we must give the ID of the QFrame (or similar object) to
-        # vlc. Different platforms have different functions for this
+        # The media players have to be 'connected' to the respective QFrames
+        # This is platform specific, so we must give the IDs of the QFrames (or similar objects) to vlc
         if platform.system() == "Linux":  # for Linux using the X Server
-            self.mediaplayer.set_xwindow(int(self.videoframe.winId()))
+            self.video_mediaplayer.set_xwindow(int(self.videoframe.winId()))
+            self.audio_mediaplayer.set_xwindow(int(self.videoframe.winId()))
         elif platform.system() == "Windows":  # for Windows
-            self.mediaplayer.set_hwnd(int(self.videoframe.winId()))
+            self.video_mediaplayer.set_hwnd(int(self.videoframe.winId()))
+            self.audio_mediaplayer.set_hwnd(int(self.videoframe.winId()))
         elif platform.system() == "Darwin":  # for MacOS
-            self.mediaplayer.set_nsobject(int(self.videoframe.winId()))
+            self.video_mediaplayer.set_nsobject(int(self.videoframe.winId()))
+            self.audio_mediaplayer.set_nsobject(int(self.videoframe.winId()))
 
-        # Start playing the video as soon as it loads
-        self.mediaplayer.play()
+        # Start playing the video and audio as soon as they load
+        self.video_mediaplayer.play()
+        self.audio_mediaplayer.play()
 
     def update_ui(self):
         self.update_statusbar()
@@ -128,48 +140,21 @@ class MiniPlayer(QtWidgets.QMainWindow):
         except queue.Empty:
             return
 
-
         val = int(val)
-        if val != self.mediaplayer.get_time():
-            self.mediaplayer.set_time(val)
+        if val != self.video_mediaplayer.get_time():
+            self.video_mediaplayer.set_time(val)
+        if val != self.audio_mediaplayer.get_time():
+            self.audio_mediaplayer.set_time(val)
 
     def update_statusbar(self):
         mtime = QtCore.QTime(0, 0, 0, 0)
-        time = mtime.addMSecs(self.mediaplayer.get_time())
-        self.statusbar.showMessage(time.toString())
+        time_video = mtime.addMSecs(self.video_mediaplayer.get_time())
+        time_audio = mtime.addMSecs(self.audio_mediaplayer.get_time())
 
-
-
-
-class KeyPressEventFilter(QtCore.QObject):
-    """Key press event filter to handle keyboard events"""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-    def eventFilter(self, obj, event):
-        if event.type() == QtCore.QEvent.KeyPress:
-            if event.key() == QtCore.Qt.Key_P:
-                # play/pause
-                if obj.mediaplayer.is_playing():
-                    obj.mediaplayer.pause()
-                else:
-                    obj.mediaplayer.play()
-            elif event.key() == QtCore.Qt.Key_S:
-                # 멈춤
-                obj.mediaplayer.stop()
-            elif event.key() == QtCore.Qt.Key_Left:
-                # 0.5배속
-                obj.mediaplayer.set_rate(obj.mediaplayer.get_rate() * 0.5)
-            elif event.key() == QtCore.Qt.Key_Right:
-                # 2배속
-                obj.mediaplayer.set_rate(obj.mediaplayer.get_rate() * 2)
-            else:
-                return super().eventFilter(obj, event)
-
-            return True
-
-        return super().eventFilter(obj, event)
+        if self.video_mediaplayer.is_playing():
+            self.statusbar.showMessage("Video: " + time_video.toString())
+        elif self.audio_mediaplayer.is_playing():
+            self.statusbar.showMessage("Audio: " + time_audio.toString())
 
 
 def main():
