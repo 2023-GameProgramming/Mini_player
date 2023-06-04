@@ -86,9 +86,6 @@ class MiniPlayer(QtWidgets.QMainWindow):
 
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint) #플레이어윈도우 맨위로
 
-        self.stacked_layout.addWidget(self.videoframe)
-        self.widget.setLayout(self.stacked_layout)
-
     def open_files(self):
         """Open media files in media players
         """
