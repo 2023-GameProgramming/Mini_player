@@ -26,6 +26,7 @@ Date: 25 January 2019
 
 import os
 import sys
+import queue
 import platform
 
 from PyQt5 import QtWidgets, QtGui, QtCore
@@ -36,7 +37,7 @@ class MiniPlayer(QtWidgets.QMainWindow):
     """Stripped-down PyQt5-based media player class to sync with "master" video.
     """
 
-    def __init__(self, master=None):
+    def __init__(self, data_queue, master=None):
         QtWidgets.QMainWindow.__init__(self, master)
         self.setWindowTitle("Mini Player")
         self.statusbar = self.statusBar()
@@ -61,6 +62,7 @@ class MiniPlayer(QtWidgets.QMainWindow):
         self.timer.setInterval(10)
         self.timer.timeout.connect(self.update_ui)
 
+        self.data_queue = data_queue
         self.timer.start()
 
     def init_ui(self):
@@ -68,6 +70,9 @@ class MiniPlayer(QtWidgets.QMainWindow):
         """
         self.widget = QtWidgets.QWidget(self)
         self.setCentralWidget(self.widget)
+
+        # Create a stacked layout
+        self.stacked_layout = QtWidgets.QStackedLayout()
 
         # In this widget, the video will be drawn
         if platform.system() == "Darwin":  # for MacOS
@@ -79,12 +84,6 @@ class MiniPlayer(QtWidgets.QMainWindow):
         self.palette.setColor(QtGui.QPalette.Window, QtGui.QColor(0, 0, 0))
         self.videoframe.setPalette(self.palette)
         self.videoframe.setAutoFillBackground(True)
-        
-        self.vboxlayout = QtWidgets.QVBoxLayout()
-        self.vboxlayout.addWidget(self.videoframe)
-        self.widget.setLayout(self.vboxlayout)
-
-        self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint) #플레이어윈도우 맨위로
 
         self.stacked_layout.addWidget(self.videoframe)
         self.widget.setLayout(self.stacked_layout)
@@ -136,13 +135,16 @@ class MiniPlayer(QtWidgets.QMainWindow):
     def update_ui(self):
         self.update_statusbar()
 
-        if self.video_mediaplayer.get_state() == vlc.State.Ended:
-            self.video_mediaplayer.stop()
-            self.video_mediaplayer.play()
+        try:
+            val = self.data_queue.get(block=False)
+        except queue.Empty:
+            return
 
-        if self.audio_mediaplayer.get_state() == vlc.State.Ended:
-            self.audio_mediaplayer.stop()
-            self.audio_mediaplayer.play()
+        val = int(val)
+        if val != self.video_mediaplayer.get_time():
+            self.video_mediaplayer.set_time(val)
+        if val != self.audio_mediaplayer.get_time():
+            self.audio_mediaplayer.set_time(val)
 
     def update_statusbar(self):
         mtime = QtCore.QTime(0, 0, 0, 0)
@@ -160,7 +162,9 @@ def main():
     """
     app = QtWidgets.QApplication(sys.argv)
 
-    player = MiniPlayer()
+    data_queue = queue.Queue()
+
+    player = MiniPlayer(data_queue)
     player.show()
     player.resize(480, 480)
 
@@ -169,4 +173,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
