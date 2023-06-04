@@ -119,9 +119,9 @@ class MiniPlayer(QtWidgets.QMainWindow):
     def update_ui(self):
         self.update_statusbar()
       	# Check if the video has ended and restart it
-    	if self.mediaplayer.get_state() == vlc.State.Ended:
-		self.mediaplayer.stop()
-		self.mediaplayer.play()
+        if self.mediaplayer.get_state() == vlc.State.Ended:
+            self.mediaplayer.stop()
+            self.mediaplayer.play()
 		
     def update_statusbar(self):
         mtime = QtCore.QTime(0, 0, 0, 0)
